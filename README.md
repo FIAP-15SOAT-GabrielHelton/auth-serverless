@@ -1,6 +1,8 @@
 # auth-serverless
 
-Serviço serverless (AWS Lambda + API Gateway) de autenticação de clientes via CPF e autorização (RBAC) do projeto **Oficina Mecânica** — Fase 3 do Tech Challenge FIAP.
+**Porta de entrada serverless do sistema**: o API Gateway que expõe publicamente todo o projeto (tanto as Lambdas de autenticação quanto a API Rails) e as Lambdas de autenticação de clientes via CPF e autorização (RBAC) do projeto **Oficina Mecânica** — Fase 3 do Tech Challenge FIAP.
+
+Este repositório é a categoria "**Function Serverless**" exigida pelo desafio — na AWS, API Gateway e Lambda formam um par indissociável (é o Gateway que torna a Lambda invocável via HTTP), por isso o provisionamento do API Gateway vive aqui, e não no `k8s-infra`: ele só pode ser criado *depois* de todo o resto (Lambdas, ELB do Rails) já existir, então não caberia num repositório que é o *primeiro* a ser implantado. Ver ADR 5 e ADR 7 da RFC-001.
 
 Arquitetura completa e decisões (ADRs) na [RFC-001](https://github.com/FIAP-15SOAT-GabrielHelton/api/blob/main/docs/fase3/RFC-001-authentication-authorization-serverless.md), do repositório [`api`](https://github.com/FIAP-15SOAT-GabrielHelton/api).
 
@@ -11,7 +13,7 @@ Este repositório faz parte de um conjunto de 5:
 | [`k8s-infra`](https://github.com/FIAP-15SOAT-GabrielHelton/k8s-infra) | VPC + EKS + node group |
 | [`db-infra`](https://github.com/FIAP-15SOAT-GabrielHelton/db-infra) | RDS PostgreSQL |
 | [`api`](https://github.com/FIAP-15SOAT-GabrielHelton/api) | Aplicação Rails + ECR + deploy no cluster |
-| `auth-serverless` (este repo) | API Gateway + Lambdas de autenticação/RBAC |
+| `auth-serverless` (este repo) | API Gateway (porta de entrada única) + Lambdas de autenticação/RBAC |
 | [`deploy-orchestrator`](https://github.com/FIAP-15SOAT-GabrielHelton/deploy-orchestrator) | Dispara e aguarda o deploy dos 4 repos acima, em ordem |
 
 ## O que tem aqui
