@@ -16,11 +16,56 @@ Este repositório faz parte de um conjunto de 5:
 | `auth-serverless` (este repo) | API Gateway (porta de entrada única) + Lambdas de autenticação/RBAC |
 | [`deploy-orchestrator`](https://github.com/FIAP-15SOAT-GabrielHelton/deploy-orchestrator) | Dispara e aguarda o deploy dos 4 repos acima, em ordem |
 
+## Tecnologias utilizadas
+
+| Categoria | Tecnologia |
+| :--- | :--- |
+| Linguagem | TypeScript (Node.js 20.x) |
+| Runtime serverless | AWS Lambda (Node.js 20.x), AWS API Gateway (HTTP API v2) |
+| Bundling | esbuild (um bundle CJS por Lambda, sem `node_modules` no zip) |
+| Autenticação | `jsonwebtoken` (HS256 — mesmo segredo do `Auth::JwtEncoder` da API Rails) |
+| Dev local | Express (`local_server.ts`), Docker Compose |
+| Testes | Jest + ts-jest |
+| IaC | Terraform (`hashicorp/aws` ~> 5.0) |
+| CI/CD | GitHub Actions (`ci.yml` em toda PR/push; `cd_deploy.yml`/`cd_destroy.yml` manuais) |
+
+## Arquitetura
+
+```mermaid
+flowchart TB
+    Client["Cliente / Staff"]
+
+    subgraph ThisRepo["auth-serverless — este repositório"]
+        APIGW["API Gateway (HTTP API v2)\núnica porta de entrada pública"]
+        AuthLambda["Lambda auth_customer\n(AWS_PROXY)"]
+        AuthzLambda["Lambda lambda_authorizer\n(REQUEST)"]
+    end
+
+    Rails["API Rails\n(repo api, via ELB)"]
+
+    Client -- "POST /auth/customer" --> APIGW
+    APIGW -- AWS_PROXY --> AuthLambda
+    AuthLambda -- "POST /api/v1/auth/customer" --> Rails
+
+    Client -- "demais rotas (Bearer JWT)" --> APIGW
+    APIGW -- valida token --> AuthzLambda
+    APIGW -- "HTTP_PROXY (sem VPC Link)" --> Rails
+
+    classDef repo fill:#9bb8ff,stroke:#5470c6,color:#000
+    classDef ext fill:#dddddd,stroke:#999999,color:#333,stroke-dasharray: 3 3
+    class APIGW,AuthLambda,AuthzLambda repo
+    class Rails,Client ext
+```
+
 ## O que tem aqui
 
 - **`auth_customer` (Lambda, `AWS_PROXY`)** — `POST /api/v1/auth/customer`: valida o formato do CPF (Módulo 11) e delega à API Rails (Single Source of Truth) a existência/status do cliente e a emissão do JWT. Rota pública, sem authorizer.
 - **`lambda_authorizer` (Lambda, `REQUEST`)** — valida a assinatura (HS256) e expiração do JWT usando o mesmo segredo do `Auth::JwtEncoder` da API Rails, e injeta `{ userId, role, type, cpf }` no contexto repassado ao backend. Não decide RBAC por rota — isso é responsabilidade da API Rails (defesa em profundidade).
 - **API Gateway (HTTP API v2)** — única porta de entrada pública do sistema. Rotas públicas (`/auth/login`, `/up`, `/tracking/{protocol}`, `/webhooks/{proxy+}`, `/auth/customer`) fazem `HTTP_PROXY` direto ao ELB público da API Rails (sem VPC Link — ver ADR 5 da RFC-001); a rota protegida `ANY /api/v1/{proxy+}` passa pelo `lambda_authorizer`.
+
+## Documentação da API
+
+Este repositório não mantém uma spec OpenAPI própria — ele é um proxy fino na frente da API Rails, cujo contrato (payloads, status codes, schemas) já está documentado no Swagger do repositório [`api`](https://github.com/FIAP-15SOAT-GabrielHelton/api#documenta%C3%A7%C3%A3o-da-api). O único endpoint específico deste repositório (`POST /auth/customer`) está descrito na seção ["O que tem aqui"](#o-que-tem-aqui) acima e na [RFC-001 §5](https://github.com/FIAP-15SOAT-GabrielHelton/api/blob/main/docs/fase3/RFC-001-authentication-authorization-serverless.md).
 
 ## Desenvolvimento local
 
