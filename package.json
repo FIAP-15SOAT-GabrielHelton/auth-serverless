@@ -1,0 +1,35 @@
+{
+  "name": "auth-serverless",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lambda serverless de autenticacao de clientes (CPF) e Lambda Authorizer para o API Gateway - Fase 3 Tech Challenge FIAP",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/local_server.ts",
+    "build": "node scripts/bundle_lambdas.js && node scripts/package_lambdas.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.146",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.14.9",
+    "@typescript-eslint/eslint-plugin": "^7.15.0",
+    "@typescript-eslint/parser": "^7.15.0",
+    "esbuild": "^0.23.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.5",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}

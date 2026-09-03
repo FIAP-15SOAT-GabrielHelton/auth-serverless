@@ -1,0 +1,18 @@
+services:
+  auth-serverless:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
+      - JWT_SECRET=development_jwt_secret
+      - RAILS_API_BASE_URL=http://host.docker.internal:3000
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - /app/node_modules
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
