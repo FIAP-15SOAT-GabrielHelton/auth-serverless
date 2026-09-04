@@ -16,6 +16,13 @@ resource "aws_apigatewayv2_stage" "default" {
 # --- Lambda Authorizer (REQUEST, IAM policy) ---
 # Valida o JWT na borda; a decisão de RBAC por rota é feita pela API Rails
 # (defesa em profundidade — ADR 2 da RFC-001).
+#
+# authorizer_result_ttl_in_seconds = 0 desabilita o cache. O default do
+# provider é 300s, cacheado pelo identity_source (token) — mas a policyDocument
+# retornada tem o Resource travado na rota da PRIMEIRA chamada. Com cache
+# ligado, o mesmo token batendo numa rota diferente dentro da janela reusa a
+# policy errada (Resource não bate) e o Gateway nega com 403, mesmo com um
+# token válido de admin.
 resource "aws_apigatewayv2_authorizer" "jwt_authorizer" {
   api_id                            = aws_apigatewayv2_api.http_api.id
   authorizer_type                   = "REQUEST"
@@ -23,6 +30,7 @@ resource "aws_apigatewayv2_authorizer" "jwt_authorizer" {
   authorizer_payload_format_version = "1.0"
   identity_sources                  = ["$request.header.Authorization"]
   name                              = "lambda-jwt-authorizer"
+  authorizer_result_ttl_in_seconds  = 0
 }
 
 # --- Integração pública: Lambda de autenticação de cliente ---
