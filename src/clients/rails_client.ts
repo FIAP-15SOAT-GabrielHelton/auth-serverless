@@ -11,11 +11,22 @@ function railsApiBaseUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-/** Cliente HTTP fino para a API Rails interna (Single Source of Truth de domínio). */
-export async function postToRails(path: string, payload: unknown): Promise<RailsResponse> {
+/**
+ * Cliente HTTP fino para a API Rails interna (Single Source of Truth de domínio).
+ * correlationId (o requestId do API Gateway) é propagado como X-Request-Id para
+ * que a mesma requisição seja rastreável nos logs/traces dos dois lados.
+ */
+export async function postToRails(
+  path: string,
+  payload: unknown,
+  correlationId?: string
+): Promise<RailsResponse> {
   const response = await fetch(`${railsApiBaseUrl()}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(correlationId ? { "X-Request-Id": correlationId } : {}),
+    },
     body: JSON.stringify(payload),
   });
 

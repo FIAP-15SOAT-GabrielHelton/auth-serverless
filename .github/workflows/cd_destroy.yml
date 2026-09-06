@@ -37,6 +37,7 @@ jobs:
           echo "::add-mask::${{ inputs.aws_secret_access_key }}"
           echo "::add-mask::${{ inputs.aws_session_token }}"
           echo "::add-mask::${{ secrets.JWT_SECRET }}"
+          echo "::add-mask::${{ secrets.NEW_RELIC_LICENSE_KEY }}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -75,6 +76,8 @@ jobs:
       - name: Terraform Destroy
         env:
           TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+          TF_VAR_new_relic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          TF_VAR_new_relic_account_id: ${{ secrets.NEW_RELIC_ACCOUNT_ID }}
         run: |
           cd infra/
           terraform init \
