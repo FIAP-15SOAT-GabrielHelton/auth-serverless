@@ -103,7 +103,15 @@ Workflow `CD Deploy (Lambdas & API Gateway)` (`workflow_dispatch`): builda os ha
 
 ### Configuração necessária
 
-Secret do repositório: `JWT_SECRET` — **precisa ser exatamente o mesmo valor** usado pela API Rails (`SECRET_KEY_BASE`/`JWT_SECRET` no repositório `api`), já que o `lambda_authorizer` verifica a assinatura HS256 dos tokens emitidos pelo `Auth::JwtEncoder` do Rails.
+Secrets do repositório:
+- `JWT_SECRET` — **precisa ser exatamente o mesmo valor** usado pela API Rails (`SECRET_KEY_BASE`/`JWT_SECRET` no repositório `api`), já que o `lambda_authorizer` verifica a assinatura HS256 dos tokens emitidos pelo `Auth::JwtEncoder` do Rails.
+- `NEW_RELIC_LICENSE_KEY`, `NEW_RELIC_ACCOUNT_ID` — usados pela extensão New Relic nas duas Lambdas (ver [Observabilidade](#observabilidade)).
+
+## Observabilidade
+
+As duas Lambdas (`auth_customer`, `lambda_authorizer`) rodam com a [Lambda Layer do New Relic](https://layers.newrelic-external.com) (Node.js) — instrumentação automática de invocações, sem alterar o código do handler. Ambas emitem logs estruturados em JSON, incluindo o `requestId` do API Gateway. Nas rotas `HTTP_PROXY` (sem Lambda), o próprio API Gateway injeta o header `X-Request-Id` (mapeado de `$context.requestId` em `infra/apigateway.tf`) para correlacionar com os logs/traces da API Rails; na rota via Lambda (`auth_customer`), o mesmo id é propagado manualmente para o Rails via `postToRails`.
+
+Detalhes de arquitetura: [`docs/fase3/architecture/component-diagram.md`](https://github.com/FIAP-15SOAT-GabrielHelton/api/blob/main/docs/fase3/architecture/component-diagram.md#4-monitoramento) (repositório `api`).
 
 ## Destroy
 

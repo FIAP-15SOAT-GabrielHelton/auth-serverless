@@ -26,9 +26,19 @@ describe("authenticateCustomer", () => {
 
     const result = await authenticateCustomer("529.982.247-25");
 
-    expect(mockedPostToRails).toHaveBeenCalledWith("/api/v1/auth/customer", { cpf: "52998224725" });
+    expect(mockedPostToRails).toHaveBeenCalledWith("/api/v1/auth/customer", { cpf: "52998224725" }, undefined);
     expect(result.statusCode).toBe(200);
     expect(result.body).toMatchObject({ access_token: "jwt.token.here" });
+  });
+
+  it("propaga o correlationId (requestId do API Gateway) para a API Rails", async () => {
+    mockedPostToRails.mockResolvedValue({ status: 200, body: {} });
+
+    await authenticateCustomer("52998224725", "req-abc-123");
+
+    expect(mockedPostToRails).toHaveBeenCalledWith(
+      "/api/v1/auth/customer", { cpf: "52998224725" }, "req-abc-123"
+    );
   });
 
   it("repassa 401 quando o cliente não existe ou está inativo", async () => {

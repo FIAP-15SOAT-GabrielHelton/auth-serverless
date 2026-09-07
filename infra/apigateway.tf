@@ -1,5 +1,13 @@
 locals {
   rails_api_base_url = data.aws_ssm_parameter.rails_api_base_url.value
+
+  # Propaga o requestId do API Gateway como X-Request-Id para o Rails, para
+  # correlacionar uma requisição entre API Gateway, logs estruturados e o
+  # New Relic (mesmo request_id nos dois lados da borda). O fluxo via Lambda
+  # (auth_customer) faz isso no próprio código, lendo event.requestContext.requestId.
+  correlation_id_mapping = {
+    "overwrite:header.X-Request-Id" = "$context.requestId"
+  }
 }
 
 resource "aws_apigatewayv2_api" "http_api" {
@@ -54,6 +62,7 @@ resource "aws_apigatewayv2_integration" "rails_auth_login" {
   integration_method     = "POST"
   integration_uri        = "${local.rails_api_base_url}/api/v1/auth/login"
   payload_format_version = "1.0"
+  request_parameters     = local.correlation_id_mapping
 }
 
 resource "aws_apigatewayv2_route" "rails_auth_login" {
@@ -68,6 +77,7 @@ resource "aws_apigatewayv2_integration" "rails_health" {
   integration_method     = "GET"
   integration_uri        = "${local.rails_api_base_url}/up"
   payload_format_version = "1.0"
+  request_parameters     = local.correlation_id_mapping
 }
 
 resource "aws_apigatewayv2_route" "rails_health" {
@@ -82,6 +92,7 @@ resource "aws_apigatewayv2_integration" "rails_tracking" {
   integration_method     = "GET"
   integration_uri        = "${local.rails_api_base_url}/api/v1/tracking/{protocol}"
   payload_format_version = "1.0"
+  request_parameters     = local.correlation_id_mapping
 }
 
 resource "aws_apigatewayv2_route" "rails_tracking" {
@@ -96,6 +107,7 @@ resource "aws_apigatewayv2_integration" "rails_webhooks" {
   integration_method     = "PATCH"
   integration_uri        = "${local.rails_api_base_url}/api/v1/webhooks/{proxy}"
   payload_format_version = "1.0"
+  request_parameters     = local.correlation_id_mapping
 }
 
 resource "aws_apigatewayv2_route" "rails_webhooks" {
@@ -111,6 +123,7 @@ resource "aws_apigatewayv2_integration" "rails_protected" {
   integration_method     = "ANY"
   integration_uri        = "${local.rails_api_base_url}/api/v1/{proxy}"
   payload_format_version = "1.0"
+  request_parameters     = local.correlation_id_mapping
 }
 
 resource "aws_apigatewayv2_route" "rails_protected" {
