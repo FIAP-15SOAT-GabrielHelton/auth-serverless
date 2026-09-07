@@ -93,9 +93,24 @@ npm run typecheck # tsc --noEmit
 npm run lint      # eslint
 ```
 
+## CI
+
+Workflow `CI` (`.github/workflows/ci.yml`), disparado em toda Pull Request e em push para `main` — status check exigido pela proteção da branch antes do merge. Passos do job `test`:
+
+1. **Install dependencies** (`npm ci`).
+2. **Type check** (`npm run typecheck`) — TypeScript sem `any` implícito escondendo erro de tipo nos handlers/clients.
+3. **Lint** (`npm run lint`).
+4. **Run tests** (`npm test -- --ci`) — Jest cobrindo `auth_customer`, `rails_client` e o validador de CPF.
+
 ## Deploy
 
-Workflow `CD Deploy (Lambdas & API Gateway)` (`workflow_dispatch`): builda os handlers (esbuild, um bundle por Lambda) e provisiona via Terraform. Recebe as credenciais temporárias da sessão do AWS Academy.
+Workflow `CD Deploy (Lambdas & API Gateway)` (`.github/workflows/cd_deploy.yml`, `workflow_dispatch`), disparado manualmente com as credenciais temporárias da sessão do AWS Academy. Passos do job `deploy`:
+
+1. **Mask Sensitive Credentials** — mascara credenciais AWS, `JWT_SECRET` e `NEW_RELIC_LICENSE_KEY` no log do Actions.
+2. **Install dependencies** + **Build Lambda Bundles** (`npm run build`) — empacota cada handler via esbuild em `build/*.zip`, formato que o Terraform espera para o `aws_lambda_function`.
+3. **Configure AWS Credentials** — autentica a sessão via `aws-actions/configure-aws-credentials`.
+4. **Bootstrap S3 Backend** — reutiliza (ou cria) o bucket S3 compartilhado de state do Terraform entre os 4 repositórios.
+5. **Terraform Provisioning** — `terraform init` + `terraform apply -auto-approve`, provisionando as duas Lambdas, o API Gateway (rotas públicas/protegidas e o authorizer JWT) e lendo a URL pública da API Rails do SSM (publicada pelo repositório `api`). Ao final, imprime a URL do API Gateway como output do job.
 
 **Pré-requisito:** o repositório `api` precisa ter sido implantado antes (publica `/oficina-mecanica/rails_api_base_url` no SSM Parameter Store, que este repositório lê).
 
